@@ -6,11 +6,15 @@ export default defineComponent({
   props: {
     msg: {
       type: String,
-      required: true
+      required: true,
+      default: 'HelloWorld'
+    },
+    foo: {
+      type: String
     }
   },
   setup(props, ctx) {
-    const { msg } = toRefs(props);
+    const { msg, foo } = toRefs(props);
     const newMsg = computed(() => msg.value + '- HelloWorld');
 
     const count = ref(0);

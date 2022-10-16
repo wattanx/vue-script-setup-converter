@@ -1,0 +1,20 @@
+// Vitest Snapshot v1
+
+exports[`converter 1`] = `
+"import { defineComponent, toRefs, computed, ref } from \\"vue\\";
+const props = defineProps({
+  msg: {
+    type: String,
+    required: true,
+    default: \\"HelloWorld\\",
+  },
+  foo: {
+    type: String,
+  },
+});
+const { msg } = toRefs(props);
+const newMsg = computed(() => msg.value + \\"- HelloWorld\\");
+
+const count = ref(0);
+"
+`;
