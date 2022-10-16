@@ -48,6 +48,9 @@ watch(
       ></textarea>
     </div>
     <div class="flex flex-1 flex-col">
+      <div class="flex flex-row py-4">
+        <label for="output-type" class="mr-2">Output: script setup</label>
+      </div>
       <pre
         class="hljs text-md w-full flex-1 select-all whitespace-pre-wrap border p-2 leading-5"
         v-html="output"
