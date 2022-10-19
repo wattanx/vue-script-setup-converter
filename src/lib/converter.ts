@@ -15,7 +15,7 @@ import { convertSetup } from "./converter/setupConverter";
 
 export const convertSrc = (input: string) => {
   const {
-    descriptor: { script, scriptSetup },
+    descriptor: { script },
   } = parse(input);
 
   const project = new Project({
@@ -26,6 +26,7 @@ export const convertSrc = (input: string) => {
   });
 
   const sourceFile = project.createSourceFile("s.tsx", script?.content ?? "");
+  const lang = script?.lang ?? "js";
 
   const importDeclaration = getNodeByKind(
     sourceFile,
@@ -47,7 +48,7 @@ export const convertSrc = (input: string) => {
     throw new Error("defineComponent is not found.");
   }
 
-  const props = convertProps(callexpression) ?? "";
+  const props = convertProps(callexpression, lang) ?? "";
   const statement = convertSetup(callexpression) ?? "";
 
   const formatedText = prettier.format(importStatement + props + statement, {

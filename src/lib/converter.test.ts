@@ -1,8 +1,18 @@
-import { test, expect } from "vitest";
+import { expect, describe, it } from "vitest";
 import { convertSrc } from "./converter";
-import optionsApi from "../assets/template/composition-api.txt?raw";
+import srcJs from "../assets/template/composition-api.txt?raw";
+import srcTs from "src/assets/template/composition-api-ts.txt?raw";
 
-test("converter", () => {
-  const output = convertSrc(optionsApi);
-  expect(output).toMatchSnapshot();
+describe("lang=js", () => {
+  it("convert", () => {
+    const output = convertSrc(srcJs);
+    expect(output).toMatchSnapshot();
+  });
+});
+
+describe("lang=ts", () => {
+  it("type-base declaration", () => {
+    const output = convertSrc(srcTs);
+    expect(output).toMatchSnapshot();
+  });
 });

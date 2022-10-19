@@ -8,7 +8,7 @@ import {
 } from "ts-morph";
 import { getNodeByKind } from "../helper";
 
-export const convertProps = (node: CallExpression) => {
+export const convertProps = (node: CallExpression, lang: string = "js") => {
   const expression = getNodeByKind(node, SyntaxKind.ObjectLiteralExpression);
 
   if (!expression) {
@@ -24,7 +24,9 @@ export const convertProps = (node: CallExpression) => {
 
   const propsNode = getPropsNode(properties);
 
-  return convertToDefineProps(propsNode as PropertyAssignment);
+  return lang === "ts"
+    ? convertToDefinePropsForTs(propsNode as PropertyAssignment)
+    : convertToDefineProps(propsNode as PropertyAssignment);
 };
 
 const getPropsNode = (nodes: ObjectLiteralElementLike[]) => {
@@ -57,33 +59,6 @@ const convertToDefineProps = (node: PropertyAssignment) => {
 };
 
 // 以下 type-based declaration用
-const convertPropsObject = (node: PropertyAssignment) => {
-  const child = node.getInitializer();
-
-  if (Node.isObjectLiteralExpression(child)) {
-    const properties = child.getProperties();
-
-    return properties.map((x) => {
-      if (!Node.isPropertyAssignment(x)) {
-        throw new Error("property not found.");
-      }
-
-      const propObj = x.getInitializer();
-      if (Node.isObjectLiteralExpression(propObj)) {
-        return convertPropsWithObject(propObj);
-      }
-      if (Node.isIdentifier(propObj)) {
-        return {
-          type: "typeOnly",
-          typeValue: propObj.getText(),
-        };
-      }
-    });
-  }
-
-  if (Node.isArrayLiteralExpression(child)) {
-  }
-};
 
 type PropType =
   | {
@@ -92,20 +67,97 @@ type PropType =
     }
   | {
       type: "typeOnly";
-      properties: { propertyName: string; typeValue: string };
+      propertyName: string;
+      typeValue: string;
     }
   | {
       type: "object";
       propertyName: string;
       typeValue?: string;
       required?: boolean;
-      defaultValue?: string;
+      defaultValue?: string | boolean;
     };
 
-const convertPropsWithObject = (node: ObjectLiteralExpression) => {
+const convertToDefinePropsForTs = (node: PropertyAssignment) => {
+  const child = node.getInitializer();
+
+  if (Node.isObjectLiteralExpression(child)) {
+    const properties = child.getProperties();
+
+    const arr: PropType[] = properties.map((x) => {
+      if (!Node.isPropertyAssignment(x)) {
+        throw new Error("property not found.");
+      }
+
+      const propObj = x.getInitializer();
+      if (Node.isObjectLiteralExpression(propObj)) {
+        return {
+          ...convertPropsWithObject(propObj),
+          propertyName: x.getName(),
+        };
+      }
+      return {
+        type: "typeOnly",
+        typeValue: propObj?.getText() ?? "",
+        propertyName: x.getName(),
+      };
+    });
+
+    const props = convertToTypeDefineProps(arr);
+
+    return props;
+  }
+
+  if (!Node.isArrayLiteralExpression(child)) {
+    throw new Error("props not found.");
+  }
+  return `const defineProps(${child.getText()});`;
+};
+
+const convertToTypeDefineProps = (props: PropType[]) => {
+  const members = props
+    .map((x) => {
+      if (x.type === "array") {
+        return;
+      }
+      if (x.type === "object") {
+        return `${x.propertyName}${!x.required ? "?" : ""}: ${x.typeValue};`;
+      }
+      return `${x.propertyName}?: ${x.typeValue};`;
+    })
+    .filter(Boolean);
+
+  const propType = `type Props = {${members.join("\n")}};`;
+
+  const defineProps = `const props = defineProps<Props>();`;
+
+  const hasDefault = props.find((x) => x.type === "object" && x.defaultValue);
+
+  const defaultValueParams = props
+    .map((x) => {
+      if (x.type === "object" && x.defaultValue) {
+        return `${x.propertyName}: ${x.defaultValue}`;
+      }
+    })
+    .filter(Boolean)
+    .join(",");
+
+  const withDefaults = `const props = withDefaults(defineProps<Props>(), { ${defaultValueParams} });`;
+
+  return hasDefault ? propType + withDefaults : propType + defineProps;
+};
+
+const convertPropsWithObject = (
+  node: ObjectLiteralExpression
+): {
+  type: "object";
+  typeValue: string;
+  required?: boolean;
+  defaultValue?: string | boolean;
+} => {
   const properties = node.getProperties();
 
-  const typeValue = getPropsOption("type", properties);
+  const typeValue = getTypeValue(properties);
 
   const required = getPropsOption("required", properties);
 
@@ -119,17 +171,40 @@ const convertPropsWithObject = (node: ObjectLiteralExpression) => {
   };
 };
 
+const getTypeValue = (properties: ObjectLiteralElementLike[]) => {
+  const property = properties.find((x) => {
+    if (!Node.isPropertyAssignment(x)) {
+      throw new Error("props property not found.");
+    }
+    return x.getName() === "type";
+  });
+
+  if (!property) {
+    throw new Error("props property not found.");
+  }
+
+  if (!Node.isPropertyAssignment(property)) {
+    throw new Error("props property not found.");
+  }
+
+  const initializer = property.getInitializer();
+
+  if (!initializer) {
+    throw new Error("props property not found.");
+  }
+
+  return typeMapping[initializer.getText()];
+};
+
 const getPropsOption = (
-  type: "type" | "required" | "default",
+  type: "required" | "default",
   properties: ObjectLiteralElementLike[]
 ) => {
   const property = properties.find((x) => {
     if (!Node.isPropertyAssignment(x)) {
       throw new Error("props property not found.");
     }
-    const name = x.getName();
-
-    return name === type;
+    return x.getName() === type;
   });
 
   if (!property) {
@@ -140,12 +215,16 @@ const getPropsOption = (
     throw new Error("props property not found.");
   }
 
+  const initializer = property.getInitializer();
+
   if (Node.isIdentifier(property.getInitializer())) {
-    return property.getInitializer()?.getText();
-  } else {
-    const initializer = property.getInitializer();
     if (!initializer) {
-      return;
+      throw new Error("props property not found.");
+    }
+    return initializer.getText();
+  } else {
+    if (!initializer) {
+      throw new Error("props property not found.");
     }
     if (
       isFalseKeyword(initializer.getKind()) ||
@@ -154,7 +233,7 @@ const getPropsOption = (
       return isTrueKeyword(initializer.getKind());
     }
     if (Node.isLiteralLike(initializer)) {
-      return initializer.getLiteralText();
+      return initializer.getText();
     }
 
     return initializer.getText();
@@ -167,4 +246,11 @@ const isTrueKeyword = (kind: SyntaxKind) => {
 
 const isFalseKeyword = (kind: number) => {
   return kind === SyntaxKind.FalseKeyword;
+};
+
+const typeMapping: Record<string, string> = {
+  String: "string",
+  Number: "number",
+  Boolean: "boolean",
+  Object: "any",
 };

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 import { defineComponent, toRefs, computed, ref } from 'vue';
 
 export default defineComponent({

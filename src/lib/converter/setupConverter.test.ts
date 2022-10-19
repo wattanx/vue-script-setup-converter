@@ -30,7 +30,7 @@ test("setup statements", () => {
     plugins: [parserTypeScript],
   });
 
-  const expected = `const { msg } = toRefs(props);
+  const expected = `const { msg, foo } = toRefs(props);
 const newMsg = computed(() => msg.value + "- HelloWorld");
 
 const count = ref(0);
