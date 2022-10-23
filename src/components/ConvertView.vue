@@ -7,7 +7,7 @@ import typescript from "highlight.js/lib/languages/typescript";
 import "highlight.js/styles/atom-one-dark.css";
 import { convertSrc } from "../lib/converter";
 // @ts-ignore
-import optionsApi from "../assets/template/composition-api.txt?raw";
+import optionsApi from "../assets/template/composition-api-ts.txt?raw";
 hljs.registerLanguage("typescript", typescript);
 
 const input = ref(optionsApi);

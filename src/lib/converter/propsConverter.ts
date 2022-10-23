@@ -6,40 +6,18 @@ import {
   SyntaxKind,
   Node,
 } from "ts-morph";
-import { getNodeByKind } from "../helper";
+import { getOptionsNode } from "../helper";
 
 export const convertProps = (node: CallExpression, lang: string = "js") => {
-  const expression = getNodeByKind(node, SyntaxKind.ObjectLiteralExpression);
-
-  if (!expression) {
-    throw new Error("props is not found.");
-  }
-  if (!Node.isObjectLiteralExpression(expression)) {
-    throw new Error("props is not found.");
-  }
-
-  const properties = expression
-    .getProperties()
-    .filter((x) => x.getKind() === SyntaxKind.PropertyAssignment);
-
-  const propsNode = getPropsNode(properties);
-
-  return lang === "ts"
-    ? convertToDefinePropsForTs(propsNode as PropertyAssignment)
-    : convertToDefineProps(propsNode as PropertyAssignment);
-};
-
-const getPropsNode = (nodes: ObjectLiteralElementLike[]) => {
-  const propsNode = nodes.find((x) => {
-    const identifiler = (x as PropertyAssignment).getName();
-    return identifiler === "props";
-  });
+  const propsNode = getOptionsNode(node, "props");
 
   if (!propsNode) {
-    throw new Error("props is not found.");
+    return "";
   }
 
-  return propsNode;
+  return lang === "ts"
+    ? convertToDefinePropsForTs(propsNode)
+    : convertToDefineProps(propsNode);
 };
 
 const convertToDefineProps = (node: PropertyAssignment) => {
@@ -52,10 +30,10 @@ const convertToDefineProps = (node: PropertyAssignment) => {
   if (Node.isObjectLiteralExpression(child)) {
     const properties = child.getProperties();
     const value = properties.map((x) => x.getText()).join(",");
-    return `const props = defineProps({${value}})`;
+    return `const props = defineProps({${value}});`;
   }
 
-  return `const props = defineProps(${child.getFullText()})`;
+  return `const props = defineProps(${child.getFullText()});`;
 };
 
 // 以下 type-based declaration用

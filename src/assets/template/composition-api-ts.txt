@@ -3,6 +3,9 @@ import { defineComponent, toRefs, computed, ref } from 'vue';
 
 export default defineComponent({
   name: 'HelloWorld',
+  emits: {
+    change: (value: number) => true,
+  },
   props: {
     msg: {
       type: String,

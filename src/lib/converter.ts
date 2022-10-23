@@ -12,6 +12,7 @@ import parserTypeScript from "prettier/parser-typescript";
 import { getNodeByKind } from "./helper";
 import { convertProps } from "./converter/propsConverter";
 import { convertSetup } from "./converter/setupConverter";
+import { convertEmits } from "./converter/emitsConverter";
 
 export const convertSrc = (input: string) => {
   const {
@@ -49,12 +50,16 @@ export const convertSrc = (input: string) => {
   }
 
   const props = convertProps(callexpression, lang) ?? "";
+  const emits = convertEmits(callexpression, lang) ?? "";
   const statement = convertSetup(callexpression) ?? "";
 
-  const formatedText = prettier.format(importStatement + props + statement, {
-    parser: "typescript",
-    plugins: [parserTypeScript],
-  });
+  const formatedText = prettier.format(
+    importStatement + props + emits + statement,
+    {
+      parser: "typescript",
+      plugins: [parserTypeScript],
+    }
+  );
 
   return formatedText;
 };
