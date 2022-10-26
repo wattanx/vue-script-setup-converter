@@ -21,6 +21,7 @@ export default defineComponent({
     const newMsg = computed(() => msg.value + '- HelloWorld');
 
     const count = ref(0);
+    ctx.emit("change", 124);
 
     return {
       count,

@@ -1,5 +1,6 @@
 import { getNodeByKind } from "./../helper";
 import { CallExpression, SyntaxKind } from "ts-morph";
+import { replaceEmit } from "./emitsConverter";
 
 export const convertSetup = (node: CallExpression) => {
   const setupNode = getNodeByKind(node, SyntaxKind.MethodDeclaration);
@@ -17,6 +18,6 @@ export const convertSetup = (node: CallExpression) => {
   return blockNode
     .forEachChildAsArray()
     .filter((x) => x.getKind() !== SyntaxKind.ReturnStatement)
-    .map((x) => x.getFullText())
+    .map((x) => replaceEmit(x.getFullText()))
     .join("");
 };

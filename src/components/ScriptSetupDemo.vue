@@ -8,7 +8,7 @@ const props = withDefaults(defineProps<Props>(), {
   msg: "HelloWorld",
 });
 const emit = defineEmits({ change: (value: number) => true });
-emit("change", 123);
+emit("change", 124);
 
 const { msg, foo } = toRefs(props);
 const newMsg = computed(() => msg.value + "- HelloWorld");

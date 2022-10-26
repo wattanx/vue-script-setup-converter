@@ -7,6 +7,11 @@ import {
 } from "ts-morph";
 import { getOptionsNode } from "../helper";
 
+// ctx.emit('event') -> emit('event')
+export const replaceEmit = (expression: string) => {
+  return expression.replace(/ctx\.(\w+)/g, (_, p1) => p1);
+};
+
 export const convertEmits = (node: CallExpression, lang: string = "js") => {
   const emitsNode = getOptionsNode(node, "emits");
   if (!emitsNode) {
